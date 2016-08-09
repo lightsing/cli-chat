@@ -4,13 +4,13 @@ __author__ = 'lightsing'
 import re
 
 import socket
-from config import __addr__
 from getpass import getpass
 from Crypto.Hash import SHA256
-from util import Operator as crypto
-from util import Command
+from util.crypto import Operator as crypto
+from util.command import Command
 from util import myprint as print
-from client_config import *
+from util.client import mainMenu
+from util import __addr__
 
 class User(object) :
     def __init__(self) :

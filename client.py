@@ -1,8 +1,6 @@
 # -*- coding:utf-8 -*-
 __author__ = 'lightsing'
 
-from util_client import User
+from util.client.util import User
 
 user = User()
-
-print('\nWelcome back.')

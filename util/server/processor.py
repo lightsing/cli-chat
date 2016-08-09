@@ -1,19 +1,11 @@
 # -*- coding:utf-8 -*-
 import socket, threading, time, sqlite3
-from config import __port__, __version__
-from util import Operator as crypto
+from util.crypto import Operator as crypto
 from Crypto.PublicKey import RSA
-from util import Command
+from util.command import Command
+from util.user import User
 from util import myprint as print
-class User(object) :
-    def __init__(self, username, password) :
-        self.username = username
-        self.password = password
-        self.isOnline = False
-        self.token = ''
-        self.contacts = []
-        self.pubkey = None
-
+from util import __version__, __addr__, __port__
 class Processor(object) :
     def __init__(self, addr = '0.0.0.0') :
         self.__rsa = crypto(secFile = 'server-private.pem', pubFile = 'server-public.pem')

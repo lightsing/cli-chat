@@ -3,4 +3,4 @@
 *.pem
 test*
 .DS_Store
-__*
+*pychache*
