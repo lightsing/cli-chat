@@ -55,7 +55,7 @@ This action will revoke the token, public key and set the status of user to
 
 `entry code: 'switch'`
 
-Except `login` and `logout` action, any other action is post in a
+Except `login`, `logout` and `online` action, any other action is post in a
 `switch` message.
 
 | Part I | Part II | Part III | Part IV |
@@ -92,8 +92,9 @@ This action will refresh the last seen time. Server will check the client if
 it is online. When the client is timeout, this will trigger the log out
 action. (@logout)
 
-> Suggest send `Kepp Online` message with the `Get Unread Message` in one
-thread.
+> Suggest using other function call to refresh the last seen time.
+
+> Any other function except `logout` will refresh the last seen time.
 
 ## Security
 
