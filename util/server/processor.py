@@ -13,6 +13,8 @@ class Processor(object) :
         self.welcome = ','.join([version,crypto.sign_BASE64(version, self.__rsa.sec)]).encode('utf-8')
         self.entry = {
         'login': self.dealLogin,
+        'logout': self.dealLogout,
+        'online': self.keepOnline,
         'switch': self.switcher,
         }
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -74,6 +76,39 @@ class Processor(object) :
         user.token = crypto.random_str(32)
         crypto.sendEncrypted(sock, user.token, user.pubkey)
         self.__user[info.contents[0]] = user
+
+    def dealLogout(self, info, sock):
+        if len(info.contents) != 2 :
+            crypto.sendWithSign(sock, 'Invaild Syntax', self.__rsa.sec)
+            return
+        try :
+            user = self.__user[info.contents[0]]
+        except :
+            crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
+            return
+        if user.token == info.contents[1] :
+            user.isOnline = False
+            user.lastseen = time.time()
+            user.token = ''
+        else :
+            crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
+        return
+
+
+    def keepOnline(self, info, sock):
+        if len(info.contents) != 2 :
+            crypto.sendWithSign(sock, 'Invaild Syntax', self.__rsa.sec)
+            return
+        try :
+            user = self.__user[info.contents[0]]
+        except :
+            crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
+            return
+        if user.token == info.contents[1] :
+            user.lastseen = time.time()
+        else :
+            crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
+        return
 
     def switcher(self, info, sock) :
         if len(info.contents) != 3 :
