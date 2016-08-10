@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-import socket, threading, time, sqlite3
+import socket, threading, time, threading
 from util.crypto import Operator as crypto
 from Crypto.PublicKey import RSA
 from util.command import Command
@@ -22,6 +22,7 @@ class Processor(object) :
         self.__socket.listen(5)
         print('Waiting for connection...')
         self.__user = {}
+        self.userMutex = threading.Lock()
         self.run()
 
     def run(self) :
@@ -60,36 +61,36 @@ class Processor(object) :
             crypto.sendWithSign(sock, 'Invaild Public Key', self.__rsa.sec)
             raise
             return
-        try :
-            user = self.__user[info.contents[0]]
+        user = self.getUser(info.contents[0])
+        if user :
             if user.isOnline :
                 crypto.sendWithSign(sock, 'Already Online', self.__rsa.sec)
                 return
             elif user.password != info.contents[1] :
                 crypto.sendWithSign(sock, 'Access Denied', self.__rsa.sec)
                 return
-        except :
+        else :
             user = User(info.contents[0], info.contents[1])
         crypto.sendWithSign(sock, 'Success', self.__rsa.sec)
         user.pubkey = pub
         user.isOnline = True
         user.token = crypto.random_str(32)
         crypto.sendEncrypted(sock, user.token, user.pubkey)
-        self.__user[info.contents[0]] = user
+        self.editUser(info.contents[0], user)
 
     def dealLogout(self, info, sock):
         if len(info.contents) != 2 :
             crypto.sendWithSign(sock, 'Invaild Syntax', self.__rsa.sec)
             return
-        try :
-            user = self.__user[info.contents[0]]
-        except :
+        user = self.getUser(info.contents[0])
+        if not user :
             crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
             return
         if user.token == info.contents[1] :
             user.isOnline = False
             user.lastseen = time.time()
             user.token = ''
+            self.editUser(info.contents[0], user)
             crypto.sendWithSign(sock, 'Success', self.__rsa.sec)
         else :
             crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
@@ -100,13 +101,13 @@ class Processor(object) :
         if len(info.contents) != 2 :
             crypto.sendWithSign(sock, 'Invaild Syntax', self.__rsa.sec)
             return
-        try :
-            user = self.__user[info.contents[0]]
-        except :
+        user = self.getUser(info.contents[0])
+        if not user :
             crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
             return
         if user.token == info.contents[1] :
             user.lastseen = time.time()
+            self.editUser(info.contents[0], user)
             crypto.sendWithSign(sock, 'Success', self.__rsa.sec)
         else :
             crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
@@ -116,7 +117,26 @@ class Processor(object) :
         if len(info.contents) != 3 :
             crypto.sendWithSign(sock, 'Invaild Syntax', self.__rsa.sec)
             return
-        try :
-            user = self.__user[info.contents[0]]
-        except :
+        user = self.getUser(info.contents[0])
+        if not user :
             crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
+
+    '''
+    Threading Safe User Operation
+    '''
+    def editUser(self, key, user) :
+        if self.userMutex.acquire():
+            try :
+                self.__user[key] = user
+            except :
+                raise
+            self.userMutex.release()
+    def getUser(self, key) :
+        user = None
+        if self.userMutex.acquire():
+            try :
+                user = self.__user[key]
+            except :
+                print('User %s not found' % key,color = 'r')
+            self.userMutex.release()
+        return user
