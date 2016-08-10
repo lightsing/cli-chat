@@ -90,6 +90,7 @@ class Processor(object) :
             user.isOnline = False
             user.lastseen = time.time()
             user.token = ''
+            crypto.sendWithSign(sock, 'Success', self.__rsa.sec)
         else :
             crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
         return
@@ -106,6 +107,7 @@ class Processor(object) :
             return
         if user.token == info.contents[1] :
             user.lastseen = time.time()
+            crypto.sendWithSign(sock, 'Success', self.__rsa.sec)
         else :
             crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
         return
