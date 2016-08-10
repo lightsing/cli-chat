@@ -19,6 +19,7 @@ class User(object) :
         self.__rsa = crypto(remote = 'server-public.pem', opt_len = 1024)
         self.online = False
         self.token = ''
+        self.unread = []
         if mainMenu.printMenu() != 1 :
             exit()
         try :
@@ -35,6 +36,9 @@ class User(object) :
             print('Initialize Faild.\nCannot connet to server.', color = 'r')
             raise
             exit(-1)
+        self.keepOnline()
+        self.logout()
+
 
     def setUsername(self) :
         log_finish = False
@@ -74,3 +78,19 @@ class User(object) :
             print('Error: %s' % response, color = 'r')
             conn.close()
             return False
+
+    def logout(self) :
+        if self.online :
+            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            conn.connect(__addr__)
+            crypto.sendEncrypted(conn,Command(['logout',self.__username,self.token]).data,self.__rsa.remote)
+            response = crypto.recvWithSign(conn, self.__rsa.remote)
+        #print(response)
+
+    def keepOnline(self) :
+        if self.online :
+            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            conn.connect(__addr__)
+            crypto.sendEncrypted(conn,Command(['online',self.__username,self.token]).data,self.__rsa.remote)
+            response = crypto.recvWithSign(conn, self.__rsa.remote)
+        print(response)
