@@ -3,7 +3,7 @@ __author__ = 'lightsing'
 
 import re
 
-import socket
+import socket, base64
 from getpass import getpass
 from Crypto.Hash import SHA256
 from util.crypto import Operator as crypto
@@ -20,6 +20,13 @@ class User(object) :
         self.online = False
         self.token = ''
         self.unread = []
+        self.switchHeader = []
+        self.switch = {
+        'find': self.switchFind,
+        #'send': self.switchSend,
+        #'sendDirect': self.switchSendDirect,
+        #'getUnread': self.switchGetUnread,
+        }
         if mainMenu.printMenu() != 1 :
             exit()
         try :
@@ -37,6 +44,7 @@ class User(object) :
             raise
             exit(-1)
         self.keepOnline()
+        self.find('ty')
         self.logout()
 
 
@@ -70,9 +78,10 @@ class User(object) :
         response = crypto.recvWithSign(conn, self.__rsa.remote)
         if response == 'Success' :
             token = crypto.recvDecrypted(conn, self.__rsa.sec)
+            conn.close()
             print('Log in successfully')
             self.token = token
-            conn.close()
+            self.switchHeader = [self.__username,self.token]
             return True
         else :
             print('Error: %s' % response, color = 'r')
@@ -85,6 +94,7 @@ class User(object) :
             conn.connect(__addr__)
             crypto.sendEncrypted(conn,Command(['logout',self.__username,self.token]).data,self.__rsa.remote)
             response = crypto.recvWithSign(conn, self.__rsa.remote)
+            conn.close()
         #print(response)
 
     def keepOnline(self) :
@@ -93,4 +103,41 @@ class User(object) :
             conn.connect(__addr__)
             crypto.sendEncrypted(conn,Command(['online',self.__username,self.token]).data,self.__rsa.remote)
             response = crypto.recvWithSign(conn, self.__rsa.remote)
+            conn.close()
         print(response)
+
+    def switchHandler(self, action, data) :
+        if self.online :
+            message = self.switchHeader + [action,data]
+            message.insert(0,'switch')
+            conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            conn.connect(__addr__)
+            crypto.sendEncrypted(conn,Command(message).data,self.__rsa.remote)
+            response = crypto.recvWithSign(conn, self.__rsa.remote)
+            if response == 'Accepted' :
+                #response = crypto.recvDecrypted(conn, self.__rsa.sec)
+                self.switch[action](conn)
+                conn.close()
+                return response
+            else :
+                print('Error: %s' % response, color='r')
+                conn.close()
+
+    def switchFind(self, conn) :
+        #data = crypto.recvDecryptedAES(conn, self.token)
+        raw = conn.recv(10240)
+        raw = base64.b64decode(raw)
+        print(len(raw))
+        data = crypto.decryptAES(raw, self.token)
+
+        if data :
+            response = crypto.decryptAES(data,self.token)
+            print(response)
+        else :
+            print('No response in find request', color='r')
+            conn.close()
+
+    def find(self, username) :
+        if self.online :
+            query = self.switchHandler('find', crypto.encryptAES(username, self.token).decode('utf-8'))
+            print(query)

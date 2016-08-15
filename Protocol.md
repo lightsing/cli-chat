@@ -16,7 +16,7 @@ decided by the specific purpose.
 
 ## Details
 
-### Log in
+### Log in √
 
 `entry code: 'login'`
 
@@ -40,7 +40,7 @@ server will lost all records.**
 Once the status of client turns into `Online`, the server will send a token
 to client. After this action complete, the connection will be closed.
 
-### Log in
+### Log out √
 
 `entry code: 'logout'`
 
@@ -51,7 +51,7 @@ to client. After this action complete, the connection will be closed.
 This action will revoke the token, public key and set the status of user to
 `Offline`
 
-### Switch
+### Switch √
 
 `entry code: 'switch'`
 
@@ -64,11 +64,34 @@ Except `login`, `logout` and `online` action, any other action is post in a
 
 The four part is necessary for any `switch` message.
 
+#### Check a user status
+
+`action code: 'find'`
+
+##### Request
+
+| Part I |
+|:------:|
+|Username|
+
+##### Response
+
+###### Message I
+
+1. `Found`
+2. `Not Found`
+
+###### Message II
+
+| Part I | Part II | Part III |
+|:------:|:-------:|:--------:|
+|isOnline|last seen|Public Key|
+
 #### Send Message to Other Clients via Server
 
 `action code: 'send'`
 
-#### Get Others Public Key
+#### Get Others Public Key [x] (Not use)
 
 `action code: 'getPublicKey'`
 
@@ -80,7 +103,7 @@ The four part is necessary for any `switch` message.
 
 `action code: 'getUnread'`
 
-### Keep Online
+### Keep Online √
 
 `entry code: 'online'`
 

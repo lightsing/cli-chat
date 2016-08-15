@@ -5,10 +5,13 @@ import time, base64
 from Crypto import Random
 from random import Random as sysRandom
 from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES
 from Crypto.Hash import SHA256
 from Crypto.Cipher import PKCS1_v1_5 as Cipher
 from Crypto.Signature import PKCS1_v1_5 as Signature
 random_generator = Random.new().read
+
+from util import myprint as print
 
 class Operator(object) :
     def __init__(self, secFile = '', pubFile = '', remote = '', opt_len = 4096) :
@@ -127,6 +130,48 @@ class Operator(object) :
             return
         message = Operator.decrypt(data, sec)
         return message.decode('utf-8')
+
+    def encryptAES(text, key):
+        try:
+            iv = Random.new().read(AES.block_size)
+            cryptor = AES.new(key, AES.MODE_CBC, iv)
+            length = 16
+            count = len(text)
+            add = length - (count % length)
+            text = text + ('\0' * add)
+            ciphertext = cryptor.encrypt(text)
+        except :
+            print('AES Encrypt ERROR',color='r')
+            return
+        return base64.b64encode(iv + ciphertext)
+
+    def decryptAES(data, key):
+        try:
+            raw = data
+            iv = raw[:AES.block_size]
+            cryptor = AES.new(key, AES.MODE_CBC, iv)
+            plain_text = cryptor.decrypt(raw[AES.block_size:]).decode().rstrip('\0')
+        except :
+            print('AES Decrypt ERROR',color='r')
+            raise
+            return
+        return plain_text
+    def sendEncryptedAES(sock, data, key) :
+        data = Operator.addTimestamp(data)
+        try :
+            sock.send(Operator.encryptAES(data, key))
+        except :
+            print('Connection Error')
+            sock.close()
+            return
+    def recvDecryptedAES(sock, key) :
+        data = sock.recv(10240)
+        if not data :
+            sock.close()
+            return
+        message = Operator.decryptAES(data, key)
+        return message
+
     def addTimestamp(data) :
         return data
     def filterReplayAttack(data) :

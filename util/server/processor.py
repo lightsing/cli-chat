@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-import socket, threading, time, threading
+import socket, threading, time, threading, base64
 from util.crypto import Operator as crypto
 from Crypto.PublicKey import RSA
 from util.command import Command
@@ -16,6 +16,12 @@ class Processor(object) :
         'logout': self.dealLogout,
         'online': self.keepOnline,
         'switch': self.switcher,
+        }
+        self.switch = {
+        'find': self.switchFind,
+        'send': self.switchSend,
+        'sendDirect': self.switchSendDirect,
+        'getUnread': self.switchGetUnread,
         }
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__socket.bind((addr,__port__))
@@ -74,7 +80,7 @@ class Processor(object) :
         crypto.sendWithSign(sock, 'Success', self.__rsa.sec)
         user.pubkey = pub
         user.isOnline = True
-        user.token = crypto.random_str(32)
+        user.token = crypto.random_str(16)
         crypto.sendEncrypted(sock, user.token, user.pubkey)
         self.editUser(info.contents[0], user)
 
@@ -114,12 +120,40 @@ class Processor(object) :
         return
 
     def switcher(self, info, sock) :
-        if len(info.contents) != 3 :
+        if len(info.contents) != 4 :
             crypto.sendWithSign(sock, 'Invaild Syntax', self.__rsa.sec)
             return
         user = self.getUser(info.contents[0])
         if not user :
             crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
+        if user.token == info.contents[1] :
+            crypto.sendWithSign(sock, 'Accepted', self.__rsa.sec)
+            self.switch[info.contents[2]](user, info.contents[3], sock)
+        else :
+            crypto.sendWithSign(sock, 'User Not Found', self.__rsa.sec)
+        return
+
+    def switchFind(self, user, data, sock) :
+        username = crypto.decryptAES(base64.b64decode(data.encode()),user.token)
+        target = self.getUser(username)
+        if target :
+            response = ','.join([str(target.isOnline),\
+                     str(target.lastseen),\
+                     target.pubkey.exportKey().decode('utf-8')])
+            print('Ready to response:\n%s\n' % response ,color='b')
+        else :
+            response = 'User Not Found'
+        #crypto.sendEncryptedAES(sock, response, user.token)
+        response = crypto.encryptAES(response, user.token)
+        print('Will send encrypted data:\n%s\n' % response ,color='r')
+        sock.send(response)
+        return
+    def switchSend(self, user, data, sock) :
+        return
+    def switchSendDirect(self, user, data, sock) :
+        return
+    def switchGetUnread(self, user, data, sock) :
+        return
 
     '''
     Threading Safe User Operation
