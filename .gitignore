@@ -1,6 +1,7 @@
 *.py[cod]
 *.so
 *.pem
+*.crt
 test*
 .DS_Store
 *pychache*
